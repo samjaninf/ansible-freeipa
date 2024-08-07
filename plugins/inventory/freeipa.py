@@ -32,8 +32,7 @@ ANSIBLE_METADATA = {
 DOCUMENTATION = """
 ---
 name: freeipa
-plugin_type: inventory
-version_added: "1.13"
+version_added: "1.13.0"
 short_description: Compiles a dynamic inventory from IPA domain
 description: |
   Compiles a dynamic inventory from IPA domain, filters servers by role(s).
@@ -92,12 +91,14 @@ verify: ca.crt
 """
 
 import os
-import requests
 try:
-    from requests.packages import urllib3
+    import requests
 except ImportError:
+    requests = None
+try:
     import urllib3
-urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+except ImportError:
+    urllib3 = None
 
 from ansible import constants
 from ansible.errors import AnsibleParserError
@@ -125,6 +126,11 @@ class InventoryModule(BaseInventoryPlugin):
         self._read_config_data(path)  # This also loads the cache
 
         self.get_option("plugin")
+
+        if requests is None:
+            raise AnsibleParserError("The required Python library "
+                                     "'requests' could not be imported.")
+
         ipaadmin_principal = self.get_option("ipaadmin_principal")
         ipaadmin_password = self.get_option("ipaadmin_password")
         server = self.get_option("server")
@@ -137,6 +143,11 @@ class InventoryModule(BaseInventoryPlugin):
                 raise AnsibleParserError("ERROR: Could not load %s" % verify)
         else:
             verify = False
+            # Disable certificate verification warning without certificate
+            # as long as urllib3 could have been loaded.
+            if urllib3 is not None:
+                urllib3.disable_warnings(
+                    urllib3.exceptions.InsecureRequestWarning)
 
         self.inventory.add_group(inventory_group)
 

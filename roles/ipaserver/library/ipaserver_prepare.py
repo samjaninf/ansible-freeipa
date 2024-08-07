@@ -55,6 +55,7 @@ options:
     type: list
     elements: str
     required: no
+    default: []
   domain:
     description: Primary DNS domain of the IPA deployment
     type: str
@@ -74,6 +75,7 @@ options:
     type: list
     elements: str
     required: no
+    default: []
   no_host_dns:
     description: Do not use DNS for hostname lookup during installation
     type: bool
@@ -114,6 +116,7 @@ options:
     type: list
     elements: str
     required: no
+    default: []
   subject_base:
     description:
       The certificate subject base (default O=<realm-name>).
@@ -134,6 +137,7 @@ options:
     type: list
     elements: str
     required: no
+    default: []
   no_reverse:
     description: Do not create new reverse DNS zone
     type: bool
@@ -149,6 +153,7 @@ options:
     type: list
     elements: str
     required: no
+    default: []
   no_forwarders:
     description: Do not add any DNS forwarders, use root servers instead
     type: bool
@@ -326,6 +331,12 @@ def main():
     # ssl certificate
     # options.dirsrv_cert_files = ansible_module.params.get(
     #     'dirsrv_cert_files')
+    # hsm
+    if hasattr(ca, "hsm_version"):
+        options.token_name = None
+        options.token_library_path = None
+        options.token_password = None
+        options.token_password_file = None
     # client
     # options.no_ntp = ansible_module.params.get('no_ntp')
     # certificate system

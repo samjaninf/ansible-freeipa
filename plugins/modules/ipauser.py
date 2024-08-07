@@ -741,7 +741,8 @@ user:
 from ansible.module_utils.ansible_freeipa_module import \
     IPAAnsibleModule, compare_args_ipa, gen_add_del_lists, date_format, \
     encode_certificate, load_cert_from_str, DN_x500_text, to_text, \
-    ipalib_errors, gen_add_list, gen_intersection_list
+    ipalib_errors, gen_add_list, gen_intersection_list, \
+    convert_input_certificates
 from ansible.module_utils import six
 if six.PY3:
     unicode = str
@@ -961,13 +962,6 @@ def extend_emails(email, default_email_domain):
     return email
 
 
-def convert_certificate(certificate):
-    if certificate is None:
-        return None
-
-    return [cert.strip() for cert in certificate]
-
-
 def convert_certmapdata(certmapdata):
     if certmapdata is None:
         return None
@@ -1110,7 +1104,7 @@ def main():
         nomembers=dict(type='bool', default=None),
         idp=dict(type="str", default=None, aliases=['ipaidpconfiglink']),
         idp_user_id=dict(type="str", default=None,
-                         aliases=['ipaidpconfiglink']),
+                         aliases=['ipaidpsub']),
         rename=dict(type="str", required=False, default=None,
                     aliases=["new_name"]),
     )
@@ -1260,7 +1254,8 @@ def main():
             preserve, update_password, smb_logon_script, smb_profile_path,
             smb_home_dir, smb_home_drive, idp, idp_user_id, rename,
         )
-        certificate = convert_certificate(certificate)
+        certificate = convert_input_certificates(ansible_module, certificate,
+                                                 state)
         certmapdata = convert_certmapdata(certmapdata)
 
     # Init
@@ -1371,7 +1366,8 @@ def main():
                     update_password, smb_logon_script, smb_profile_path,
                     smb_home_dir, smb_home_drive, idp, idp_user_id, rename,
                 )
-                certificate = convert_certificate(certificate)
+                certificate = convert_input_certificates(ansible_module,
+                                                         certificate, state)
                 certmapdata = convert_certmapdata(certmapdata)
 
                 # Check API specific parameters

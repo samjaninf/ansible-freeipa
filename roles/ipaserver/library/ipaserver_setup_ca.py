@@ -54,6 +54,7 @@ options:
     type: list
     elements: str
     required: no
+    default: []
   domain:
     description: Primary DNS domain of the IPA deployment
     type: str
@@ -182,6 +183,7 @@ options:
     type: list
     elements: str
     required: no
+    default: []
   no_reverse:
     description: Do not create new reverse DNS zone
     type: bool
@@ -305,6 +307,12 @@ def main():
     options.dirsrv_cert_files = ansible_module.params.get('dirsrv_cert_files')
     options._dirsrv_pkcs12_info = ansible_module.params.get(
         '_dirsrv_pkcs12_info')
+    # hsm
+    if hasattr(ca, "hsm_version"):
+        options.token_name = None
+        options.token_library_path = None
+        options.token_password = None
+        options.token_password_file = None
     # certificate system
     options.external_ca = ansible_module.params.get('external_ca')
     options.external_ca_type = ansible_module.params.get('external_ca_type')

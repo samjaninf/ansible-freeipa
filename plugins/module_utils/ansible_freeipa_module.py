@@ -54,6 +54,7 @@ import tempfile
 import shutil
 import socket
 import base64
+import binascii
 import ast
 import time
 from datetime import datetime
@@ -644,6 +645,7 @@ def encode_certificate(cert):
     Encode a certificate using base64.
 
     It also takes FreeIPA and Python versions into account.
+    This is used to convert the certificates returned by find and show.
     """
     if isinstance(cert, (str, unicode, bytes)):
         encoded = base64.b64encode(cert)
@@ -652,6 +654,33 @@ def encode_certificate(cert):
     if not six.PY2:
         encoded = encoded.decode('ascii')
     return encoded
+
+
+def convert_input_certificates(module, certs, state):
+    """
+    Convert certificates.
+
+    Remove all newlines and white spaces from the certificates.
+    This is used on input parameter certificates of modules.
+    """
+    if certs is None:
+        return None
+
+    _certs = []
+    for cert in certs:
+        try:
+            _cert = base64.b64encode(base64.b64decode(cert)).decode("ascii")
+        except (TypeError, binascii.Error) as e:
+            # Idempotency: Do not fail for an invalid cert for state absent.
+            # The invalid certificate can not be set in FreeIPA.
+            if state == "absent":
+                continue
+            module.fail_json(
+                msg="Certificate %s: Base64 decoding failed: %s" %
+                (repr(cert), str(e)))
+        _certs.append(_cert)
+
+    return _certs
 
 
 def load_cert_from_str(cert):
@@ -1485,7 +1514,6 @@ class IPAAnsibleModule(AnsibleModule):
                                 filter(lambda x: x[0] in keeponly,
                                        _res.items())
                             )
-                        self.tm_warn("res: %s" % repr(res))
 
                         if "error" not in res or res["error"] is None:
                             if result_handler is not None:
@@ -1498,10 +1526,9 @@ class IPAAnsibleModule(AnsibleModule):
                             changed = True
                         else:
                             _errors.append(
-                                "%s %s %s: %s" %
+                                "%s: %s: %s" %
                                 (batch_args[ri]["method"],
-                                 repr(batch_args[ri]["params"][0][0]),
-                                 repr(batch_args[ri]["params"][1]),
+                                 str(batch_args[ri]["params"][0][0]),
                                  res["error"]))
                 # clear batch command list (python2 compatible)
                 del batch_args[:]
